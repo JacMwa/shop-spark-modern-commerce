@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ShoppingBag, User, Search, Menu, X, Star, Heart } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, Star, Heart, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
