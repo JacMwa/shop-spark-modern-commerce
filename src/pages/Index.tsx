@@ -1,93 +1,71 @@
-
-import { useState, useEffect } from 'react';
-import { ShoppingBag, User, Search, Menu, X, Star, Heart, ShoppingCart } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ShoppingBag, User, Search, Menu, X, Star, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import Cart from '@/components/Cart';
+import AuthModal from '@/components/AuthModal';
+import PaymentModal from '@/components/PaymentModal';
+import { products } from '@/data/products';
+
+interface CartItem {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
+}
+
+interface User {
+  email: string;
+  name: string;
+}
 
 const Index = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [cart, setCart] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const { toast } = useToast();
 
   // Mock product data - In real app, this would come from Django API
-  const products = [
-    {
-      id: 1,
-      name: "Premium Wireless Headphones",
-      price: 299.99,
-      originalPrice: 399.99,
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop",
-      category: "Electronics",
-      rating: 4.8,
-      reviews: 124,
-      badge: "Best Seller"
-    },
-    {
-      id: 2,
-      name: "Smart Fitness Watch",
-      price: 199.99,
-      originalPrice: 249.99,
-      image: "https://images.unsplash.com/photo-1544117519-31a4b1f4d69e?w=500&h=500&fit=crop",
-      category: "Wearables",
-      rating: 4.6,
-      reviews: 89,
-      badge: "New"
-    },
-    {
-      id: 3,
-      name: "Organic Coffee Blend",
-      price: 24.99,
-      originalPrice: 29.99,
-      image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500&h=500&fit=crop",
-      category: "Food & Beverage",
-      rating: 4.9,
-      reviews: 256,
-      badge: "Organic"
-    },
-    {
-      id: 4,
-      name: "Designer Backpack",
-      price: 89.99,
-      originalPrice: 119.99,
-      image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&h=500&fit=crop",
-      category: "Fashion",
-      rating: 4.7,
-      reviews: 67,
-      badge: "Sale"
-    },
-    {
-      id: 5,
-      name: "Skincare Essential Kit",
-      price: 79.99,
-      originalPrice: 99.99,
-      image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&h=500&fit=crop",
-      category: "Beauty",
-      rating: 4.8,
-      reviews: 143,
-      badge: "Popular"
-    },
-    {
-      id: 6,
-      name: "Gaming Mechanical Keyboard",
-      price: 149.99,
-      originalPrice: 199.99,
-      image: "https://images.unsplash.com/photo-1541140532154-b024d705b90a?w=500&h=500&fit=crop",
-      category: "Gaming",
-      rating: 4.9,
-      reviews: 198,
-      badge: "Pro Choice"
-    }
-  ];
+  const categories = ["All", "Electronics", "Fashion", "Beauty", "Gaming", "Food & Beverage", "Wearables", "Home & Garden", "Sports", "Books", "Toys"];
 
-  const categories = ["All", "Electronics", "Fashion", "Beauty", "Gaming", "Food & Beverage", "Wearables"];
+  // Filter products based on search and category
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          product.category.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchQuery, selectedCategory]);
 
   const addToCart = (product: any) => {
-    setCart(prev => [...prev, product]);
+    setCart(prev => {
+      const existingItem = prev.find(item => item.id === product.id);
+      if (existingItem) {
+        return prev.map(item => 
+          item.id === product.id 
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { 
+        id: product.id, 
+        name: product.name, 
+        price: product.price, 
+        image: product.image, 
+        quantity: 1 
+      }];
+    });
+    
     toast({
       title: "Added to Cart",
       description: `${product.name} has been added to your cart.`,
@@ -100,6 +78,42 @@ const Index = () => {
         ? prev.filter(id => id !== productId)
         : [...prev, productId]
     );
+  };
+
+  const handleCheckout = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setShowPaymentModal(true);
+  };
+
+  const handleAuthSuccess = (userData: User) => {
+    setUser(userData);
+    toast({
+      title: "Welcome!",
+      description: `Hello ${userData.name}, you're now signed in.`,
+    });
+  };
+
+  const handlePaymentSuccess = () => {
+    setCart([]);
+    toast({
+      title: "Payment Successful!",
+      description: "Your order has been placed successfully.",
+    });
+  };
+
+  const handleSignOut = () => {
+    setUser(null);
+    toast({
+      title: "Signed Out",
+      description: "You have been signed out successfully.",
+    });
+  };
+
+  const getTotalPrice = () => {
+    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
   return (
@@ -134,18 +148,31 @@ const Index = () => {
 
             {/* Navigation Icons */}
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="hidden md:flex">
-                <User className="h-5 w-5 mr-1" />
-                Sign In
-              </Button>
-              <Button variant="ghost" size="sm" className="relative">
-                <ShoppingCart className="h-5 w-5" />
-                {cart.length > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                    {cart.length}
-                  </Badge>
-                )}
-              </Button>
+              {user ? (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Hello, {user.name}</span>
+                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <AuthModal 
+                  onAuthSuccess={handleAuthSuccess}
+                  trigger={
+                    <Button variant="ghost" size="sm" className="hidden md:flex">
+                      <User className="h-5 w-5 mr-1" />
+                      Sign In
+                    </Button>
+                  }
+                />
+              )}
+              
+              <Cart 
+                cart={cart} 
+                setCart={setCart} 
+                onCheckout={handleCheckout}
+              />
+              
               <Button
                 variant="ghost"
                 size="sm"
@@ -185,7 +212,7 @@ const Index = () => {
               </span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
-              Shop the latest trends with unbeatable prices and lightning-fast delivery
+              Shop from over 1000+ products with unbeatable prices and lightning-fast delivery
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 text-lg font-semibold">
@@ -206,8 +233,9 @@ const Index = () => {
             {categories.map((category) => (
               <Button
                 key={category}
-                variant={category === "All" ? "default" : "outline"}
+                variant={category === selectedCategory ? "default" : "outline"}
                 className="rounded-full px-6 py-2"
+                onClick={() => setSelectedCategory(category)}
               >
                 {category}
               </Button>
@@ -220,19 +248,24 @@ const Index = () => {
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Products</h2>
-            <p className="text-lg text-gray-600">Handpicked items just for you</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              {selectedCategory === 'All' ? 'All Products' : selectedCategory}
+            </h2>
+            <p className="text-lg text-gray-600">
+              {filteredProducts.length} products found
+              {searchQuery && ` for "${searchQuery}"`}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.map((product) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.slice(0, 20).map((product) => (
               <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:scale-[1.02]">
                 <CardHeader className="p-0">
                   <div className="relative overflow-hidden rounded-t-lg">
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute top-4 left-4">
                       <Badge className="bg-gradient-to-r from-blue-500 to-purple-500">
@@ -253,36 +286,37 @@ const Index = () => {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center gap-1 mb-2">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-4 w-4 ${
+                        className={`h-3 w-3 ${
                           i < Math.floor(product.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
                         }`}
                       />
                     ))}
-                    <span className="text-sm text-gray-600 ml-1">
+                    <span className="text-xs text-gray-600 ml-1">
                       {product.rating} ({product.reviews})
                     </span>
                   </div>
-                  <CardTitle className="text-lg mb-2 line-clamp-2">{product.name}</CardTitle>
-                  <CardDescription className="text-sm text-gray-500 mb-4">
+                  <CardTitle className="text-sm mb-1 line-clamp-2 h-10">{product.name}</CardTitle>
+                  <CardDescription className="text-xs text-gray-500 mb-3">
                     {product.category}
                   </CardDescription>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-blue-600">
+                    <div className="flex items-center gap-1">
+                      <span className="text-lg font-bold text-blue-600">
                         ${product.price}
                       </span>
-                      <span className="text-sm text-gray-500 line-through">
+                      <span className="text-xs text-gray-500 line-through">
                         ${product.originalPrice}
                       </span>
                     </div>
                     <Button
+                      size="sm"
                       onClick={() => addToCart(product)}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-xs px-3 py-1"
                     >
                       Add to Cart
                     </Button>
@@ -291,6 +325,14 @@ const Index = () => {
               </Card>
             ))}
           </div>
+
+          {filteredProducts.length > 20 && (
+            <div className="text-center mt-8">
+              <Button variant="outline" size="lg">
+                Load More Products
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -378,6 +420,24 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal && !user}
+        onOpenChange={setShowAuthModal}
+        onAuthSuccess={(userData) => {
+          handleAuthSuccess(userData);
+          setShowPaymentModal(true);
+        }}
+      />
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onOpenChange={setShowPaymentModal}
+        totalAmount={getTotalPrice()}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 };
