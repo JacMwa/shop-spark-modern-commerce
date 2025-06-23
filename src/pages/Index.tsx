@@ -33,6 +33,9 @@ const Index = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{role: 'user' | 'bot', message: string}[]>([]);
+  const [chatInput, setChatInput] = useState('');
   const { toast } = useToast();
 
   // Mock product data - In real app, this would come from Django API
@@ -129,6 +132,33 @@ const Index = () => {
 
   const getTotalPrice = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const handleChatSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const userMessage = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: 'user', message: userMessage }]);
+    setChatInput('');
+
+    // Simulate AI response
+    setTimeout(() => {
+      let botResponse = '';
+      const searchTerms = userMessage.toLowerCase();
+      
+      if (searchTerms.includes('deal') || searchTerms.includes('discount')) {
+        botResponse = '🎉 Great news! I found some amazing deals for you. Check out our Sale section for up to 50% off on electronics and fashion items!';
+      } else if (searchTerms.includes('recommend') || searchTerms.includes('suggest')) {
+        botResponse = '💡 Based on popular trends, I recommend checking out our wireless headphones, smart watches, and gaming accessories. They\'re bestsellers!';
+      } else if (searchTerms.includes('price') || searchTerms.includes('cheap') || searchTerms.includes('budget')) {
+        botResponse = '💰 Looking for budget-friendly options? I can show you items under $50. What category interests you most?';
+      } else {
+        botResponse = `🛍️ I found ${filteredProducts.length} items related to "${userMessage}". Would you like me to show you the best deals or most popular items?`;
+      }
+      
+      setChatMessages(prev => [...prev, { role: 'bot', message: botResponse }]);
+    }, 1000);
   };
 
   return (
@@ -284,10 +314,13 @@ const Index = () => {
               <p className="text-xl md:text-2xl mb-8 text-yellow-100 max-w-2xl">
                 Your AI-powered shopping companion for amazing deals and personalized recommendations
               </p>
-              <div className="flex items-center justify-center md:justify-start space-x-4 text-yellow-900">
-                <Bot className="h-8 w-8" />
-                <span className="text-lg font-semibold">AI Assistant Ready to Help</span>
-              </div>
+              <Button
+                onClick={() => setShowChatbot(true)}
+                className="bg-yellow-900 hover:bg-yellow-800 text-white px-8 py-4 text-lg rounded-full flex items-center space-x-2"
+              >
+                <Bot className="h-6 w-6" />
+                <span>Chat with AI Assistant</span>
+              </Button>
             </div>
             <div className="md:w-1/2 flex justify-center">
               <div className="relative">
@@ -308,6 +341,76 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Chatbot Modal */}
+      {showChatbot && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md h-96 flex flex-col">
+            {/* Chatbot Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="bg-white/20 p-2 rounded-full">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">ShopSpark AI</h3>
+                  <p className="text-xs opacity-80">Here to help you shop!</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowChatbot(false)}
+                className="text-white hover:bg-white/20"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3">
+              {chatMessages.length === 0 && (
+                <div className="text-center text-gray-500 mt-8">
+                  <Bot className="h-12 w-12 mx-auto mb-3 text-blue-500" />
+                  <p className="text-sm">Hi! I'm your AI shopping assistant.</p>
+                  <p className="text-xs">Ask me about deals, products, or recommendations!</p>
+                </div>
+              )}
+              {chatMessages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                      msg.role === 'user'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {msg.message}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Chat Input */}
+            <form onSubmit={handleChatSubmit} className="p-4 border-t">
+              <div className="flex space-x-2">
+                <Input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask me anything..."
+                  className="flex-1"
+                />
+                <Button type="submit" size="sm">
+                  Send
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Categories */}
       <section className="py-12">
