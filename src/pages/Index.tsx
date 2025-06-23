@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ShoppingBag, User, Search, Menu, X, Star, Heart, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, X, Star, Heart, ShoppingCart, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,7 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const { toast } = useToast();
 
   // Mock product data - In real app, this would come from Django API
@@ -46,6 +47,20 @@ const Index = () => {
       return matchesSearch && matchesCategory;
     });
   }, [searchQuery, selectedCategory]);
+
+  // AI Assistant suggestions based on search
+  const getAISuggestions = () => {
+    if (!searchQuery) return [];
+    
+    const suggestions = [
+      `Found ${filteredProducts.length} items matching "${searchQuery}"`,
+      `💡 Special deals on ${selectedCategory !== 'All' ? selectedCategory : 'popular items'}`,
+      `🔥 Trending: Similar items with 4.5+ star ratings`,
+      `💰 Best value: Items under $50 in this category`
+    ];
+    
+    return suggestions;
+  };
 
   const addToCart = (product: any) => {
     setCart(prev => {
@@ -143,6 +158,16 @@ const Index = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-600"
+                    onClick={() => setShowAIAssistant(!showAIAssistant)}
+                  >
+                    <Bot className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -195,32 +220,90 @@ const Index = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-600"
+                  onClick={() => setShowAIAssistant(!showAIAssistant)}
+                >
+                  <Bot className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </header>
 
+      {/* AI Assistant Suggestions */}
+      {showAIAssistant && searchQuery && (
+        <div className="bg-blue-50 border-b border-blue-200 py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-start space-x-3">
+              <div className="bg-blue-600 p-2 rounded-full">
+                <Bot className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-blue-900 mb-2">AI Shopping Assistant</h3>
+                <div className="space-y-1">
+                  {getAISuggestions().map((suggestion, index) => (
+                    <p key={index} className="text-sm text-blue-800">{suggestion}</p>
+                  ))}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAIAssistant(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 text-white">
-        <div className="absolute inset-0 bg-black/20"></div>
+      <section className="relative overflow-hidden bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-400">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-20" 
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=1200&h=600&fit=crop')"
+          }}
+        ></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Discover Amazing
-              <span className="block bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent">
-                Products
-              </span>
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
-              Shop from over 1000+ products with unbeatable prices and lightning-fast delivery
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 text-lg font-semibold">
-                Shop Now
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-3 text-lg font-semibold">
-                View Deals
-              </Button>
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="text-center md:text-left md:w-1/2 mb-8 md:mb-0">
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
+                Welcome to
+                <span className="block text-yellow-900 font-black">
+                  ShopSpark
+                </span>
+              </h1>
+              <p className="text-xl md:text-2xl mb-8 text-yellow-100 max-w-2xl">
+                Your AI-powered shopping companion for amazing deals and personalized recommendations
+              </p>
+              <div className="flex items-center justify-center md:justify-start space-x-4 text-yellow-900">
+                <Bot className="h-8 w-8" />
+                <span className="text-lg font-semibold">AI Assistant Ready to Help</span>
+              </div>
+            </div>
+            <div className="md:w-1/2 flex justify-center">
+              <div className="relative">
+                <img
+                  src="https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=500&h=600&fit=crop"
+                  alt="Happy saleswoman in yellow ShopSpark uniform"
+                  className="w-80 h-96 object-cover rounded-2xl shadow-2xl"
+                />
+                <div className="absolute -top-4 -right-4 bg-white p-4 rounded-xl shadow-lg">
+                  <div className="text-center">
+                    <ShoppingBag className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                    <p className="text-sm font-bold text-gray-800">ShopSpark</p>
+                    <p className="text-xs text-gray-600">Your Shopping Assistant</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -356,10 +439,10 @@ const Index = () => {
             </div>
             <div className="text-center">
               <div className="bg-gradient-to-r from-blue-400 to-purple-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ShoppingCart className="h-8 w-8 text-white" />
+                <Bot className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Easy Returns</h3>
-              <p className="text-gray-600">30-day hassle-free returns</p>
+              <h3 className="text-xl font-semibold mb-2">AI Shopping Assistant</h3>
+              <p className="text-gray-600">Personalized recommendations just for you</p>
             </div>
           </div>
         </div>
@@ -377,7 +460,7 @@ const Index = () => {
                 <span className="text-xl font-bold">ShopSpark</span>
               </div>
               <p className="text-gray-400 mb-4">
-                Your one-stop destination for amazing products at unbeatable prices.
+                Your AI-powered shopping destination for amazing products at unbeatable prices.
               </p>
             </div>
             <div>
